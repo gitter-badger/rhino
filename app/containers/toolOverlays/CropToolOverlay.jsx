@@ -1,4 +1,8 @@
+const {compose} = require('redux');
 const {connect} = require('react-redux');
+const {DragSource} = require('react-dnd');
+
+const {dnd} = require('../../constants');
 
 const CropToolOverlay = require('../../components/toolOverlays/CropToolOverlay');
 
@@ -22,7 +26,21 @@ const mapDispatchToProps = (dispatch) => ({
   },
 });
 
-module.exports = connect(
-  mapStateToProps,
-  mapDispatchToProps
+const cropSource = {
+  beginDrag(props) {
+    return {};
+  },
+};
+
+function collect(connect, monitor) {
+  return {
+    connectDragSource: connect.dragSource(),
+    connectDragPreview: connect.dragPreview(),
+    isDragging: monitor.isDragging(),
+  };
+}
+
+module.exports = compose(
+  connect(mapStateToProps, mapDispatchToProps),
+  DragSource(dnd.types.crop, cropSource, collect)
 )(CropToolOverlay);

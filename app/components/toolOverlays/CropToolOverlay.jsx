@@ -1,9 +1,10 @@
 const React = require('react');
+const {getEmptyImage} = require('react-dnd-html5-backend');
 
 const {isSizeInRange, isPositiveCoordinate} = require('../../helpers/validators');
 
 const ToolOverlay = require('../ToolOverlay');
-const DragHandle = require('../DragHandle');
+const AdjustableBox = require('../AdjustableBox');
 
 const CropToolOverlay = React.createClass({
   propTypes: {
@@ -19,6 +20,9 @@ const CropToolOverlay = React.createClass({
     overlayHeight: React.PropTypes.number.isRequired,
     overlayOffsetX: React.PropTypes.number.isRequired,
     overlayOffsetY: React.PropTypes.number.isRequired,
+
+    connectDragSource: React.PropTypes.func.isRequired,
+    connectDragPreview: React.PropTypes.func.isRequired,
   },
 
   getInitialState() {
@@ -46,56 +50,20 @@ const CropToolOverlay = React.createClass({
     });
   },
 
-  deriveHandleBox(handles) {
-    const {maxWidth, maxHeight} = this.props;
-    const {minX, minY, maxX, maxY} = handles.reduce((acc, {x, y}) => ({
-      minX: Math.max(0, Math.min(acc.minX, x)),
-      minY: Math.max(0, Math.min(acc.minY, y)),
-      maxX: Math.min(Math.max(acc.maxX, x), maxWidth),
-      maxY: Math.min(Math.max(acc.maxY, y), maxHeight),
-    }), {minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity});
-
-    this.props.onChange({
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-    });
-  },
-
-  handleCoordinates() {
-    const {x, y, width, height} = this.state;
-
-    return [
-      {x: x, y: y},
-      {x: x + width, y: y},
-      {x: x + width, y: y + height},
-      {x: x, y: y + height},
-    ];
+  componentDidMount() {
+    this.props.connectDragPreview(getEmptyImage());
   },
 
   render() {
-    const {zoom} = this.props;
+    const {zoom, connectDragSource} = this.props;
 
-    const handles = this.handleCoordinates();
+    const {x, y, width, height} = this.state;
 
     return (
       <ToolOverlay {...this.props}>
-        {handles.map(({x, y}, index) => (
-          <DragHandle key={`h${x},${y}`}
-            x={x * zoom} y={y * zoom}
-            onChange={(dx, dy) => {
-              // need to divide by the zoom so these values are correct
-              dx = Math.round(dx / zoom);
-              dy = Math.round(dy / zoom);
-              const others = handles.filter((h, i) => i !== index);
-              const updated = others.map((other) => ({
-                x: other.x === x ? dx : other.x,
-                y: other.y === y ? dy : other.y,
-              }));
-              this.deriveHandleBox([{x: dx, y: dy}, ...updated]);
-            }} />
-        ))}
+        <AdjustableBox x={x * zoom} y={y * zoom}
+          width={width * zoom} height={height * zoom}
+          connectDragSource={connectDragSource} />
       </ToolOverlay>
     );
   },
